@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anime Vision</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+    body { font-family: 'Inter', sans-serif; }
+    .markdown-output li { list-style: disc; margin-left: 1.5rem; margin-bottom: 0.5rem; }
+</style>
+</head>
+<body class="min-h-screen bg-gray-900 p-4 sm:p-8">
+
+<div class="max-w-7xl mx-auto space-y-6">
+
+    <header class="text-center">
+        <h1 class="text-3xl font-extrabold text-pink-400">Anime Vision</h1>
+        <p class="mt-1 text-gray-400">Upload an anime character to find the anime</p>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-[75vh]">
+
+        <!-- Left Panel: Input -->
+        <div id="input-panel" class="bg-gray-800 p-6 rounded-xl shadow-2xl border border-pink-700/50 flex flex-col items-center justify-center">
+            <div id="drop-zone" class="flex-1 w-full min-h-[50vh] border-4 border-dashed rounded-xl flex flex-col items-center justify-center p-8 cursor-pointer border-gray-600 bg-gray-800 hover:border-pink-500">
+                <p class="text-2xl font-semibold text-white mb-2">Drag & Drop Image</p>
+                <p class="text-gray-400 mb-4">or click to upload</p>
+                <input type="file" accept="image/*" id="file-input" class="hidden">
+                <label for="file-input" class="py-2 px-6 bg-pink-600 text-white rounded-lg font-medium shadow-md hover:bg-pink-700">Select File</label>
+            </div>
+        </div>
+
+        <!-- Right Panel: Output -->
+        <div class="bg-gray-800 p-6 rounded-xl shadow-2xl border border-pink-700/50 flex flex-col">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-semibold text-white">AI Analysis Result</h3>
+                <button id="reset-button" class="flex items-center text-sm font-medium text-gray-300 hover:text-red-400 transition bg-gray-700 py-1 px-3 rounded-full active:scale-[0.95] disabled:opacity-50" disabled>Clear</button>
+            </div>
+            <div id="output-area" class="flex-1 flex items-center justify-center p-8 bg-gray-700/50 rounded-xl border border-dashed border-gray-600 min-h-[60vh] text-gray-400">
+                <p>Analysis will appear here after image upload.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('file-input');
+const inputPanel = document.getElementById('input-panel');
+const outputArea = document.getElementById('output-area');
+const resetButton = document.getElementById('reset-button');
+
+let currentFile = null;
+let isLoading = false;
+
+function updateOutput(type, message) {
+    outputArea.innerHTML = '';
+    outputArea.classList.remove('border-dashed');
+    if (type === 'loading') {
+        outputArea.classList.add('flex-col', 'justify-center', 'items-center');
+        outputArea.innerHTML = `<p class="text-white font-medium">Analyzing image...</p>`;
+        resetButton.disabled = true;
+    } else if (type === 'error') {
+        outputArea.classList.add('flex-col', 'justify-center', 'items-center', 'bg-red-900/30', 'border-red-600');
+        outputArea.innerHTML = `<p class="text-red-400 font-bold">Error:</p><p class="text-red-300 text-center mt-2">${message}</p>`;
+        resetButton.disabled = false;
+    } else if (type === 'result') {
+        outputArea.classList.remove('flex-col', 'justify-center', 'items-center', 'bg-red-900/30', 'border-red-600');
+        outputArea.textContent = message;
+        resetButton.disabled = false;
+    } else if (type === 'initial') {
+        outputArea.classList.add('border-dashed', 'flex-col', 'justify-center', 'items-center');
+        outputArea.innerHTML = `<p class="text-gray-400">Upload an image to analyze.</p>`;
+        resetButton.disabled = true;
+    }
+}
+
+async function handleAnalyze() {
+    if (isLoading || !currentFile) return;
+
+    isLoading = true;
+    updateOutput('loading');
+
+    try {
+        const payload = new FormData();
+        payload.append('file', currentFile);
+
+        // ✅ Hugging Face Space relative path
+        const response = await fetch('/predict', {
+            method: 'POST',
+            body: payload
+        });
+
+        const data = await response.json();
+        if (!data.prediction) throw new Error('No prediction received.');
+        updateOutput('result', data.prediction);
+
+    } catch (e) {
+        console.error("Analysis failed:", e);
+        updateOutput('error', e.message || "Unknown error during image analysis.");
+    } finally {
+        isLoading = false;
+    }
+}
+
+async function processFile(file) {
+    if (!file || !file.type.startsWith('image/')) {
+        updateOutput('error', 'Please select a valid image file.');
+        return;
+    }
+    currentFile = file;
+    const reader = new FileReader();
+    reader.onload = () => {
+        inputPanel.innerHTML = `
+            <h3 class="text-xl font-semibold text-white mb-4">Uploaded Image</h3>
+            <div class="w-full max-h-96 overflow-hidden rounded-lg shadow-xl border border-gray-700 flex items-center justify-center bg-gray-900 mb-4">
+                <img src="${reader.result}" alt="Image Preview" class="w-full object-contain h-auto">
+            </div>
+            <p class="text-sm text-gray-400 mb-4">${file.name}</p>
+            <input type="file" accept="image/*" id="file-input-small" class="hidden">
+            <label for="file-input-small" class="py-2 px-6 bg-gray-700 text-white rounded-lg font-medium shadow-md hover:bg-gray-600">
+                Upload New Image
+            </label>
+        `;
+        document.getElementById('file-input-small').addEventListener('change', e => processFile(e.target.files[0]));
+    };
+    reader.readAsDataURL(file);
+    await handleAnalyze();
+}
+
+function handleReset() {
+    currentFile = null;
+    isLoading = false;
+    inputPanel.innerHTML = `
+        <div id="drop-zone" class="flex-1 w-full min-h-[50vh] border-4 border-dashed rounded-xl flex flex-col items-center justify-center p-8 cursor-pointer border-gray-600 bg-gray-800 hover:border-pink-500">
+            <p class="text-2xl font-semibold text-white mb-2">Drag & Drop Image</p>
+            <p class="text-gray-400 mb-4">or click to upload</p>
+            <input type="file" accept="image/*" id="file-input" class="hidden">
+            <label for="file-input" class="py-2 px-6 bg-pink-600 text-white rounded-lg font-medium shadow-md hover:bg-pink-700">Select File</label>
+        </div>
+    `;
+    document.getElementById('drop-zone').addEventListener('dragover', e => e.preventDefault());
+    document.getElementById('drop-zone').addEventListener('drop', e => {
+        e.preventDefault();
+        processFile(e.dataTransfer.files[0]);
+    });
+    document.getElementById('file-input').addEventListener('change', e => processFile(e.target.files[0]));
+    updateOutput('initial');
+}
+
+window.onload = () => {
+    handleReset();
+    resetButton.addEventListener('click', handleReset);
+};
+</script>
+</body>
+</html>
