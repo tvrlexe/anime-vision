@@ -5,16 +5,27 @@ import json
 from fastapi import FastAPI, UploadFile
 from io import BytesIO
 from fastapi.middleware.cors import CORSMiddleware
+import uvicorn
 
-# Load labels
-with open("classes.json") as f:
-    classes = json.load(f)
+# Load class labels
+try:
+    with open("classes.json", "r") as f:
+        classes = json.load(f)
+except Exception as e:
+    classes = []
+    print("⚠️ Warning: Could not load classes.json:", e)
 
-# Load model
-model = models.resnet18()
-num_classes = len(classes)
+# Load the trained model
+model = models.resnet18(weights=None)
+num_classes = len(classes) if classes else 1000  # fallback
 model.fc = torch.nn.Linear(model.fc.in_features, num_classes)
-model.load_state_dict(torch.load("anime_model.pth", map_location="cpu"))
+
+try:
+    model.load_state_dict(torch.load("anime_model.pth", map_location="cpu"))
+    print("✅ Model loaded successfully.")
+except Exception as e:
+    print("⚠️ Warning: Could not load model weights:", e)
+
 model.eval()
 
 # Image transform
@@ -24,20 +35,38 @@ transform = transforms.Compose([
     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 ])
 
-# FastAPI app
-app = FastAPI()
+# Initialize FastAPI app
+app = FastAPI(
+    title="Anime Classifier",
+    description="Upload an anime image to get the predicted title/class",
+    version="1.0",
+)
+
+# Allow all origins (for your index.html frontend)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow your frontend to call
+    allow_origins=["*"],
     allow_methods=["*"],
-    allow_headers=["*"]
+    allow_headers=["*"],
 )
+
+@app.get("/")
+def home():
+    return {"message": "Welcome to the Anime Classifier API!"}
 
 @app.post("/predict")
 async def predict(file: UploadFile):
-    img = Image.open(BytesIO(await file.read())).convert("RGB")
-    x = transform(img).unsqueeze(0)
-    with torch.no_grad():
-        outputs = model(x)
-        _, pred = torch.max(outputs, 1)
-    return {"prediction": classes[pred.item()]}
+    try:
+        img = Image.open(BytesIO(await file.read())).convert("RGB")
+        x = transform(img).unsqueeze(0)
+        with torch.no_grad():
+            outputs = model(x)
+            _, pred = torch.max(outputs, 1)
+        predicted_class = classes[pred.item()] if classes else f"Class {pred.item()}"
+        return {"prediction": predicted_class}
+    except Exception as e:
+        return {"error": str(e)}
+
+# Optional: local test
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=7860)
