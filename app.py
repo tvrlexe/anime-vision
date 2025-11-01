@@ -5,9 +5,12 @@ import json
 from fastapi import FastAPI, UploadFile
 from io import BytesIO
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 import uvicorn
+import os
 
-# Load class labels
+# ---- Load class labels ----
 try:
     with open("classes.json", "r") as f:
         classes = json.load(f)
@@ -15,7 +18,7 @@ except Exception as e:
     classes = []
     print("⚠️ Warning: Could not load classes.json:", e)
 
-# Load the trained model
+# ---- Load trained model ----
 model = models.resnet18(weights=None)
 num_classes = len(classes) if classes else 1000  # fallback
 model.fc = torch.nn.Linear(model.fc.in_features, num_classes)
@@ -28,21 +31,21 @@ except Exception as e:
 
 model.eval()
 
-# Image transform
+# ---- Image transform ----
 transform = transforms.Compose([
     transforms.Resize((224, 224)),
     transforms.ToTensor(),
     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 ])
 
-# Initialize FastAPI app
+# ---- Initialize FastAPI app ----
 app = FastAPI(
     title="Anime Classifier",
     description="Upload an anime image to get the predicted title/class",
     version="1.0",
 )
 
-# Allow all origins (for your index.html frontend)
+# Allow frontend requests
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -50,10 +53,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/")
-def home():
-    return {"message": "Welcome to the Anime Classifier API!"}
+# ---- Serve Frontend (index.html) ----
+app.mount("/static", StaticFiles(directory="."), name="static")
 
+@app.get("/")
+def serve_index():
+    return FileResponse("index.html")
+
+# ---- Prediction endpoint ----
 @app.post("/predict")
 async def predict(file: UploadFile):
     try:
@@ -67,6 +74,6 @@ async def predict(file: UploadFile):
     except Exception as e:
         return {"error": str(e)}
 
-# Optional: local test
+# ---- Optional local run ----
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=7860)
