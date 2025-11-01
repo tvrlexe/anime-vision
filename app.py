@@ -16,7 +16,7 @@ try:
         classes = json.load(f)
 except Exception as e:
     classes = []
-    print("⚠️ Warning: Could not load classes.json:", e)
+    print("Warning: Could not load classes.json:", e)
 
 # ---- Load trained model ----
 model = models.resnet18(weights=None)
@@ -25,9 +25,9 @@ model.fc = torch.nn.Linear(model.fc.in_features, num_classes)
 
 try:
     model.load_state_dict(torch.load("anime_model.pth", map_location="cpu"))
-    print("✅ Model loaded successfully.")
+    print("Model loaded successfully.")
 except Exception as e:
-    print("⚠️ Warning: Could not load model weights:", e)
+    print("Warning: Could not load model weights:", e)
 
 model.eval()
 
