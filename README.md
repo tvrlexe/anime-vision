@@ -1,16 +1,22 @@
+# Anime Character Recognition
 
----
-title: Anime Vision
-emoji: 🏃
-colorFrom: gray
-colorTo: gray
-sdk: gradio
-sdk_version: 5.49.1
-app_file: app.py
-pinned: false
-license: apache-2.0
-short_description: AI Model that predicts an anime given a character picture
----
+A quick prototype model built in one day to recognize anime characters from images.
 
-Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
-project link: https://huggingface.co/spaces/tvrlexe/anime-vision 
+## ⚠️ Disclaimer
+
+This project was developed rapidly for a hackathon and is **not intended for accurate use**. The model has limited performance and was trained on a small dataset in a short timeframe.
+
+## Features
+
+- Image classification using ResNet18
+- FastAPI backend with drag-and-drop frontend
+- Trained on ~8,000 images across 493 anime titles
+
+## Limitations
+
+- Low accuracy (~32% after initial epochs)
+- Dataset requires cleaning
+- Not suitable for production use
+
+## Hugging Face Link
+https://huggingface.co/spaces/tvrlexe/anime-vision
