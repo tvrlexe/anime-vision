@@ -1,3 +1,4 @@
+
 ---
 title: Anime Vision
 emoji: 🏃
@@ -12,3 +13,4 @@ short_description: AI Model that predicts an anime given a character picture
 ---
 
 Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
+project link: https://huggingface.co/spaces/tvrlexe/anime-vision 
