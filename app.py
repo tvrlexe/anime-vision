@@ -10,7 +10,7 @@ from fastapi.responses import FileResponse
 import uvicorn
 import os
 
-# ---- Load class labels ----
+# ---- Load class labels ---- 
 try:
     with open("classes.json", "r") as f:
         classes = json.load(f)
