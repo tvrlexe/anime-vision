@@ -1,6 +1,6 @@
 # Anime Character Recognition
 
-A quick prototype model built in one day to recognize anime characters from images.
+A quick prototype model built in one day to recognize anime from anime characters using icrawler and a kaggle dataset to get the name of the characters.
 
 ## ⚠️ Disclaimer
 
@@ -20,3 +20,6 @@ This project was developed rapidly for a hackathon and is **not intended for acc
 
 ## Hugging Face Link
 https://huggingface.co/spaces/tvrlexe/anime-vision
+
+## Kaggle dataset used 
+https://www.kaggle.com/datasets/forgetabhi/top-1000-anime-and-manga-characters-dataset/data
